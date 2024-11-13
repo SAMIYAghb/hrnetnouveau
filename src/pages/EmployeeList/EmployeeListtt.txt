@@ -1,0 +1,93 @@
+import { useMemo, useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { setEmployees } from "../../redux/slices/EmployeeSlice";
+import { selectStates } from "../../redux/slices/StateSlice";
+import TableUI from "../../components/Atoms/Table/TableUI";
+import EmployeeTableHeader from "../../components/Organisms/EmployeeTableHeader";
+import PaginationControls from "../../components/Organisms/PaginationControls";
+import dayjs from "dayjs";
+
+const EmployeeList = () => {
+  const [searchString, setSearchString] = useState("");
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const dispatch = useDispatch();
+
+  const employees = useSelector((state) => state.employees.employees);
+  const states = useSelector(selectStates);
+
+  // Utiliser useMemo pour calculer les employés filtrés une seule fois
+  const stateAbbreviationMap = useMemo(
+    () =>
+      states.reduce((map, state) => {
+        map[state.name] = state.abbreviation;
+        return map;
+      }, {}),
+    [states]
+  );
+
+  const filteredEmployees = useMemo(() => {
+    return employees
+      .map((employee) => ({
+        ...employee,
+        zipCode: Number(employee.zipCode),
+        state: stateAbbreviationMap[employee.state] || employee.state,
+      }))
+      .filter((employee) =>
+        Object.entries(employee).some(([key, value]) => {
+          const stringValue = typeof value === "number" ? value.toString() : value.toLowerCase().trim();
+          if (key === "startDate" || key === "dateOfBirth") {
+            const formattedDate = dayjs(value).format("DD/MM/YYYY");
+            return formattedDate.includes(searchString.toLowerCase().trim());
+          }
+          return stringValue.includes(searchString.toLowerCase().trim());
+        })
+      );
+  }, [employees, searchString, stateAbbreviationMap]);
+
+  // Gestion de la pagination : seulement après le filtrage
+  const totalEntries = filteredEmployees.length;
+  const startIndex = (currentPage - 1) * entriesPerPage;
+  const endIndex = startIndex + entriesPerPage;
+  const paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
+
+  // Fonction pour la gestion de la recherche
+  const handleSearchChange = (e) => {
+    setSearchString(e.target.value);
+    setCurrentPage(1); // Réinitialiser la page lorsque la recherche change
+  };
+
+  // Fonction pour gérer les entrées par page
+  const handleEntriesChange = (value) => {
+    setEntriesPerPage(Number(value));
+    setCurrentPage(1); // Réinitialiser la page lorsque le nombre d'entrées change
+  };
+
+  return (
+    <>
+      <div className="title_container">
+        <h1>Current Employees</h1>
+      </div>
+      <div className="container">
+        <EmployeeTableHeader
+          searchString={searchString}
+          onSearchChange={handleSearchChange}
+          onEntriesChange={handleEntriesChange}
+          options={[{ label: "10", value: "10" }, { label: "25", value: "25" }, { label: "50", value: "50" }]}
+        />
+        <TableUI data={paginatedEmployees} />
+        <PaginationControls
+          currentPage={currentPage}
+          totalEntries={totalEntries}
+          entriesPerPage={entriesPerPage}
+          onPrevious={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          onNext={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, Math.ceil(totalEntries / entriesPerPage)))
+          }
+        />
+      </div>
+    </>
+  );
+};
+
+export default EmployeeList;

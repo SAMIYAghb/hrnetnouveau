@@ -1,0 +1,12 @@
+Utiliser un autre serveur HTTP local :
+
+Si vous préférez tester en dehors de Vite, vous pouvez utiliser un serveur HTTP léger comme serve, qui peut être installé globalement avec npm, puis utilisé pour servir le contenu de votre dossier dist :
+bash
+
+npm install -g serve
+serve dist
+
+Cette commande lancera un serveur HTTP et vous fournira une URL (généralement http://localhost:3000) où vous pouvez visualiser l'application sans déclencher les erreurs de CORS.
+
+
+http://192.168.1.78:3000/
